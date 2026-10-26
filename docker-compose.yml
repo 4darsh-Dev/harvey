@@ -2,18 +2,20 @@ services:
   harvey:
     build: .
     env_file: .env
+    stdin_open: true
+    tty: true
     ports:
       - "5555:5555"
     volumes:
       # Persist database across restarts
       - ./data:/app/data
-      # Mount config for easy editing without rebuild
+      # Mount config and env for easy editing without rebuild
+      - ./.env:/app/.env:ro
       - ./harvey.yaml:/app/harvey.yaml:ro
       - ./prompts:/app/prompts:ro
       - ./skills:/app/skills
-      # Antigravity CLI (agy) binary and credentials
+      # Antigravity CLI (agy) credentials and settings
       - ~/.gemini:/home/harvey/.gemini
-      - ~/.local/bin/agy:/usr/local/bin/agy:ro
     restart: unless-stopped
     init: true
     logging:

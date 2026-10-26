@@ -82,7 +82,7 @@ persona:
   name: "Adarsh"
   company: "SolveEase"
   role: "Co-founder, Sales & Product Strategy"
-  email: "adarsh@solveease.in"
+  email: "adarsh@solveease.tech"
   linkedin: "linkedin.com/in/adarsh-maurya-dev"
   tone: "respectful, plain-spoken, consultative, confident; no tech jargon, ROI and time-saved first"
 
@@ -109,14 +109,12 @@ product:
 
 icp:
   industries:
-    - "Manufacturing (SME and mid-size: auto components, packaging, textiles, FMCG, industrial products)"
-    - "Wholesale, Distribution and Trading"
-    - "Logistics, Transport and Freight"
-    - "Real Estate, Construction and Architecture"
-    - "Healthcare (multi-location clinics, diagnostics, hospitals)"
-    - "Retail, D2C and Traditional Brands (jewellery, sweets, apparel, home goods)"
-    - "Education and Coaching Institutes"
-    - "Professional Services (CA, legal, consulting firms)"
+    - "Manufacturing"
+    - "Wholesale"
+    - "Logistics"
+    - "Real Estate"
+    - "Healthcare"
+    - "Retail"
   company_size: "20-500 employees"
   titles:
     - "Founder"
@@ -130,7 +128,11 @@ icp:
     - "Head of Operations"
     - "General Manager"
   geography:
-    - "India (Delhi NCR, Mumbai, Pune, Ahmedabad, Surat, Jaipur, Ludhiana, Indore, Bengaluru, Hyderabad, Chennai)"
+    - "Delhi, India"
+    - "Mumbai, India"
+    - "Bengaluru, India"
+    - "Pune, India"
+    - "Ahmedabad, India"
   # Roles that signal a company is in-market RIGHT NOW (a company hiring a
   # "Head of Growth" is shopping for growth tooling). Used for careers-page
   # scanning and job-board discovery. Empty = fall back to titles above.
@@ -207,7 +209,7 @@ compliance:
   # Added under every cold email (never replies). US law (CAN-SPAM) requires a
   # postal address you receive mail at: a street address, PO box or virtual
   # mailbox. Until it's set, cold email still sends, with a warning.
-  postal_address: ""
+  postal_address: "SolveEase, New Delhi, India"
   # Keep wording Harvey recognises as an opt-out ("no thanks", "unsubscribe").
   opt_out_line: 'Not interested? Reply "no thanks" and I won''t email again.'
   precleared:

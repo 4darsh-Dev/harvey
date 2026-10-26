@@ -481,9 +481,13 @@ def _needs_setup() -> bool:
 
     env_file = PROJECT_ROOT / ".env"
 
-    # If .env doesn't exist, definitely needs setup
-    if not env_file.exists():
+    # If neither .env file nor mail provider environment variables exist, needs setup
+    has_env = env_file.exists() or any(
+        k in os.environ for k in ("GMAIL_CLIENT_ID")
+    )
+    if not has_env:
         return True
+        
 
     # harvey.local.yaml wins over the tracked harvey.yaml template, same
     # resolution order the real config loader uses (see config.py).

@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
-# System deps (curl needed for the Claude CLI installer)
+# System deps (curl needed for the Antigravity CLI installer)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
@@ -33,12 +33,10 @@ COPY --chown=harvey:harvey harvey.yaml .
 USER harvey
 ENV PATH="/home/harvey/.local/bin:${PATH}"
 
-# Claude Code CLI (installed if online; optional if using Antigravity 'agy' or Codex).
-RUN (installer="$(mktemp)" \
-    && curl -fsSL https://claude.ai/install.sh -o "$installer" \
-    && bash "$installer" \
-    && rm "$installer" \
-    && python -c "from harvey.claude_runtime import check_cli; print(check_cli())") || true
+# Antigravity CLI (agy) for Gemini Flash models
+RUN curl -fsSL https://antigravity.google/cli/install.sh | bash \
+    && agy --version \
+    && rm -rf /home/harvey/.cache
 
 # Healthy = the heartbeat loop has touched the database recently
 # (2h window tolerates long heartbeat intervals and quiet-hour idling).
