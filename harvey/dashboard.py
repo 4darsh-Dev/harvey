@@ -2432,6 +2432,12 @@ def _check_loopback_bind(host: str) -> str:
     if name.startswith("[") and name.endswith("]"):
         name = name[1:-1]
     if not auth.is_loopback(name):
+        if name in ("0.0.0.0", "::") and (
+            os.path.exists("/.dockerenv")
+            or os.getenv("HARVEY_ALLOW_ALL_INTERFACES", "").lower() in ("1", "true")
+            or os.getenv("HARVEY_DASHBOARD_HOST") in ("0.0.0.0", "::")
+        ):
+            return name
         raise DashboardSetupError(
             f"Refusing to listen on {host!r}: the dashboard only listens on this machine "
             "(127.0.0.1, ::1 or localhost). To reach it from elsewhere, tunnel instead: "
@@ -2444,12 +2450,16 @@ def dashboard_url(host: str = "127.0.0.1", port: int = 5555) -> str:
     never send to the server (so it stays out of logs and Referer); the
     page moves it to sessionStorage and strips it from the address bar."""
     name = _check_loopback_bind(host)
-    try:
-        if ipaddress.ip_address(name).version == 6:
-            name = f"[{name}]"
-    except ValueError:
-        pass
-    return f"http://{name}:{port}/#token={token_store.get()}"
+    display_name = name
+    if display_name in ("0.0.0.0", "::"):
+        display_name = "localhost"
+    else:
+        try:
+            if ipaddress.ip_address(display_name).version == 6:
+                display_name = f"[{display_name}]"
+        except ValueError:
+            pass
+    return f"http://{display_name}:{port}/#token={token_store.get()}"
 
 
 def start_dashboard(host: str = "127.0.0.1", port: int = 5555):

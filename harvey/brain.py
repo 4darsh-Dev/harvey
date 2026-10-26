@@ -539,7 +539,7 @@ class Brain:
 
                 if process.returncode != 0:
                     error = stderr.decode(errors="replace").strip()
-                    logger.error(f"agy exited with code {process.returncode}: {error[:300]}")
+                    logger.error(f"agy exited with code {process.returncode}: {error}")
                     last_error = error
                     continue
 

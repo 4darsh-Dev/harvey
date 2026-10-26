@@ -9,9 +9,10 @@ services:
     volumes:
       # Persist database across restarts
       - ./data:/app/data
-      # Mount config and env for easy editing without rebuild
+      # Mount config, code and env for easy editing without rebuild
       - ./.env:/app/.env:ro
       - ./harvey.yaml:/app/harvey.yaml:ro
+      - ./harvey:/app/harvey
       - ./prompts:/app/prompts:ro
       - ./skills:/app/skills
       # Antigravity CLI (agy) credentials and settings

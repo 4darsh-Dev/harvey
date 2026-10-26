@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 import signal
 import sys
 from datetime import datetime, time, timedelta
@@ -511,6 +512,67 @@ def _needs_setup() -> bool:
     return False
 
 
+async def start_background_dashboard(stop_event: asyncio.Event) -> asyncio.Task | None:
+    """Start the dashboard server concurrently if enabled.
+
+    Enabled by default in Docker (when /.dockerenv exists) or whenever
+    HARVEY_ENABLE_DASHBOARD is set to a truthy value.
+    """
+    enable = os.getenv("HARVEY_ENABLE_DASHBOARD")
+    if enable is not None:
+        if enable.strip().lower() not in ("1", "true", "yes"):
+            return None
+    elif not os.path.exists("/.dockerenv"):
+        return None
+
+    import uvicorn
+    from harvey.dashboard import app, dashboard_url, _check_loopback_bind
+    from harvey.dashboard_auth import TokenError
+
+    host = os.getenv("HARVEY_DASHBOARD_HOST")
+    if not host:
+        host = "0.0.0.0" if os.path.exists("/.dockerenv") else "127.0.0.1"
+    port = int(os.getenv("HARVEY_DASHBOARD_PORT", "5555"))
+
+    try:
+        bind = _check_loopback_bind(host)
+        url = dashboard_url(host, port)
+    except Exception as e:
+        logger.warning(f"Dashboard setup check failed: {e}. Heartbeat will run without dashboard.")
+        return None
+
+    config = uvicorn.Config(
+        app,
+        host=bind,
+        port=port,
+        log_level="warning",
+        proxy_headers=False,
+        server_header=False,
+        date_header=False,
+    )
+    server = uvicorn.Server(config)
+
+    logger.info(f"Dashboard server starting at {url}")
+    print(f"\n  Harvey Dashboard running. Open this link to unlock it:\n\n    {url}\n", flush=True)
+
+    async def _serve():
+        try:
+            await server.serve()
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.warning(f"Dashboard server stopped: {e}")
+
+    task = asyncio.create_task(_serve())
+
+    async def _shutdown_listener():
+        await stop_event.wait()
+        server.should_exit = True
+
+    asyncio.create_task(_shutdown_listener())
+    return task
+
+
 async def _run_with_signals():
     """Run the heartbeat with SIGINT/SIGTERM wired to a graceful shutdown."""
     stop_event = asyncio.Event()
@@ -530,7 +592,16 @@ async def _run_with_signals():
             # Windows / non-main-thread fallback
             signal.signal(sig, lambda s, f: _request_shutdown(signal.Signals(s).name))
 
-    await heartbeat(stop_event)
+    dashboard_task = await start_background_dashboard(stop_event)
+    try:
+        await heartbeat(stop_event)
+    finally:
+        if dashboard_task and not dashboard_task.done():
+            dashboard_task.cancel()
+            try:
+                await dashboard_task
+            except asyncio.CancelledError:
+                pass
 
 
 def main():
