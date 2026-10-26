@@ -186,24 +186,36 @@ async def _run_agents(tasks: list) -> dict:
         return {}
     if len(tasks) > 1:
         logger.info(f"Running {len(tasks)} agents in parallel: {[t[0] for t in tasks]}")
+
+    created = [(name, asyncio.create_task(coro)) for name, coro in tasks]
+    timeout = int(os.getenv("HARVEY_CYCLE_TIMEOUT", str(CYCLE_TIMEOUT_SECONDS)))
     try:
-        results = await asyncio.wait_for(
-            asyncio.gather(*[t[1] for t in tasks], return_exceptions=True),
-            timeout=CYCLE_TIMEOUT_SECONDS,
+        await asyncio.wait_for(
+            asyncio.gather(*[t for _, t in created], return_exceptions=True),
+            timeout=timeout,
         )
     except asyncio.TimeoutError:
+        timed_out = [name for name, t in created if not t.done()]
         logger.error(
-            f"Cycle timed out after {CYCLE_TIMEOUT_SECONDS}s with "
-            f"{[t[0] for t in tasks]} still running — cancelled, "
+            f"Cycle timed out after {timeout}s with "
+            f"{timed_out} still running — cancelled, "
             "moving on to the next heartbeat instead of hanging forever."
         )
-        results = []
+        for _, t in created:
+            if not t.done():
+                t.cancel()
+
     outcomes = {}
-    for (name, _), result in zip(tasks, results):
-        if isinstance(result, asyncio.CancelledError):
-            raise result
-        if isinstance(result, Exception):
-            logger.error(f"Agent {name} failed: {result}", exc_info=result)
+    for name, task in created:
+        if not task.done():
+            continue
+        try:
+            result = task.result()
+        except asyncio.CancelledError:
+            continue
+        except Exception as e:
+            logger.error(f"Agent {name} failed: {e}", exc_info=e)
+            result = e
         outcomes[name] = result
     return outcomes
 

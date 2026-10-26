@@ -268,9 +268,31 @@ def is_loopback(host: str) -> bool:
         return True
     if "%" in host:
         return False  # IPv6 zone IDs (::1%lo0): ipaddress calls them loopback
+
+    allow_private = (
+        os.path.exists("/.dockerenv")
+        or os.getenv("HARVEY_ALLOW_PRIVATE_NETWORK", "").lower() in ("1", "true", "yes")
+    )
+    allowed_hosts = [
+        h.strip().lower()
+        for h in os.getenv("HARVEY_DASHBOARD_ALLOWED_HOSTS", "").split(",")
+        if h.strip()
+    ]
+    if host.lower() in allowed_hosts:
+        return True
+
     try:
-        return ipaddress.ip_address(host).is_loopback
+        ip = ipaddress.ip_address(host)
+        if ip.is_loopback:
+            return True
+        if allow_private:
+            # Tailscale CGNAT range (100.64.0.0/10) or RFC1918 private LAN
+            if ip in ipaddress.ip_network("100.64.0.0/10") or ip.is_private:
+                return True
+        return False
     except ValueError:
+        if allow_private and host.lower().endswith(".ts.net"):
+            return True
         return False
 
 

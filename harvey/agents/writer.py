@@ -11,6 +11,7 @@ design). Every draft still passes the deterministic pre-send gate.
 
 import json
 import logging
+import os
 import re
 from datetime import datetime, timezone
 
@@ -35,9 +36,9 @@ WRITE_ATTEMPTS_KEY = "write_attempts:"
 # Merge variables that name a person; a company inbox has none of them.
 PERSON_VAR = re.compile(r"\{\{\s*(first_?name|last_?name|title)\s*\}\}", re.IGNORECASE)
 
-# Native mode: one Claude call per prospect for email 1, so batches stay
+# Native mode: one model call per prospect for email 1, so batches stay
 # small — the rest of the 'new' pool is picked up on later cycles.
-NATIVE_BATCH_CAP = 8
+NATIVE_BATCH_CAP = int(os.getenv("HARVEY_WRITER_BATCH_CAP", "3"))
 LEGACY_BATCH_CAP = 50
 
 
@@ -152,6 +153,10 @@ class Writer:
                 f"Writer: Campaign '{batch_name}' created with "
                 f"{len(sequence)} emails for {len(prospects)} prospects."
             )
+            if self.is_native:
+                # In native mode, process one campaign batch per cycle to stay
+                # well within the cycle timeout; remaining batches will be drafted next cycle.
+                break
 
     async def _count_failed_attempt(self, batch_name: str, prospects: list):
         """Count one unusable sequence against each prospect in the batch.

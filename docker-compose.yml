@@ -5,7 +5,8 @@ services:
     stdin_open: true
     tty: true
     ports:
-      - "5555:5555"
+      # Bind to Tailscale IP (e.g. 100.x.y.z:5555:5555) or 0.0.0.0 by default
+      - "${TAILSCALE_IP:-0.0.0.0}:5555:5555"
     volumes:
       # Persist database across restarts
       - ./data:/app/data
